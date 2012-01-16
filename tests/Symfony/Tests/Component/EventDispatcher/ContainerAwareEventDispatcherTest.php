@@ -38,31 +38,40 @@ class ContainerAwareEventDispatcherTest extends \PHPUnit_Framework_TestCase
     
     public function testDispatch()
     {
-        $this->assertTrue($this->container->get('event_dispatcher')->hasListeners(TestEventListener::onFoo));
-        $this->container->get('event_dispatcher')->dispatch(TestEventListener::onFoo, new Event());
-        $this->assertTrue($this->container->get('foo.event_listener')->onFooInvoked);
+        $listener = $this->container->get('foo.event_listener');
+        $dispatcher = $this->container->get('event_dispatcher');
+        
+        $this->assertTrue($dispatcher->hasListeners($listener::onFoo));
+        $dispatcher->dispatch($listener::onFoo, new Event());
+        $this->assertTrue($listener->onFooInvoked);
     }
     
+    /* failing */
     public function testRemoveAfterDispatch()
     {
-        $this->assertTrue($this->container->get('event_dispatcher')->hasListeners(TestEventListener::onFoo));
-        $this->container->get('event_dispatcher')->dispatch(TestEventListener::onFoo, new Event());
-        $this->assertTrue($this->container->get('foo.event_listener')->onFooInvoked);
-        $this->container->get('event_dispatcher')->removeListener(TestEventListener::onFoo, array($this->container->get('event_dispatcher'), 'onFoo'));
-        $this->assertTrue($this->container->get('event_dispatcher')->hasListeners(TestEventListener::onFoo));
+        $listener = $this->container->get('foo.event_listener');
+        $dispatcher = $this->container->get('event_dispatcher');
+        
+        $this->assertTrue($listener instanceof TestEventListener);
+        $this->assertTrue($dispatcher->hasListeners($listener::onFoo));
+        $dispatcher->dispatch($listener::onFoo, new Event());
+        $this->assertTrue($listener->onFooInvoked);
+        $dispatcher->removeListener($listener::onFoo, array($listener, 'onFoo'));
+        $this->assertFalse($dispatcher->hasListeners($listener::onFoo));
     }
 
-    /* this test is failing */
-    public function testRemoveWithoutDispatch()
+    /* failing */
+    public function testRemoveBeforeDispatch()
     {
-        $this->assertTrue($this->container->get('event_dispatcher')->hasListeners(TestEventListener::onFoo));
-        // remove listener
-        $this->container->get('event_dispatcher')->removeListener(TestEventListener::onFoo, array($this->container->get('foo.event_listener'), 'onFoo'));
+        $listener = $this->container->get('foo.event_listener');
+        $dispatcher = $this->container->get('event_dispatcher');
         
-        // failed, still can be invoked
-        $this->container->get('event_dispatcher')->dispatch(TestEventListener::onFoo, new Event());
-        $this->assertFalse($this->container->get('foo.event_listener')->onFooInvoked);
-        $this->assertFalse($this->container->get('event_dispatcher')->hasListeners(TestEventListener::onFoo));
+        $this->assertTrue($listener instanceof TestEventListener);
+        $this->assertTrue($dispatcher->hasListeners($listener::onFoo));
+        $dispatcher->removeListener($listener::onFoo, array($listener, 'onFoo'));
+        $dispatcher->dispatch($listener::onFoo, new Event());
+        $this->assertFalse($listener->onFooInvoked);
+        $this->assertFalse($dispatcher->hasListeners(TestEventListener::onFoo));
     }
 }
 
